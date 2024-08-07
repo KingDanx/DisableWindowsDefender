@@ -118,31 +118,49 @@ function Enable-Windows-Defender {
     }
 }
 
+function Enable-ProtectAllNetworkConnections {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Profile = "StandardProfile"  # Options: "StandardProfile", "DomainProfile", "PublicProfile"
+    )
+
+    # Define the registry path based on the profile
+    $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\WindowsFirewall\$Profile"
+
+    # Ensure the path exists
+    if (-not (Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+
+    # Set the "EnableFirewall" value to 1 (Enable)
+    Set-ItemProperty -Path $regPath -Name "EnableFirewall" -Value 1 -Force
+
+    # Set the "DoNotAllowExceptions" value to 1 (Protect all network connections)
+    Set-ItemProperty -Path $regPath -Name "DoNotAllowExceptions" -Value 1 -Force
+
+    Write-Output "The 'Protect all network connections' setting has been enabled for the $Profile."
+}
+
+# Example usage:
+# Enable-ProtectAllNetworkConnections -Profile "DomainProfile"
+# Enable-ProtectAllNetworkConnections -Profile "StandardProfile"
+# Enable-ProtectAllNetworkConnections -Profile "PublicProfile"
+
+
 
 function Reboot-Safe-Mode {
-    $owner = Get-Acl "C:\ProgramData\Microsoft\Windows Defender\Platform"
-    $bootState = (gwmi win32_computersystem -Property BootupState).BootupState
-    if ((gwmi win32_computersystem -Property BootupState).BootupState -eq 'Normal Boot') {
-        #$owner.Owner -eq "NT AUTHORITY\SYSTEM" -and ----> May add this back later
-        cmd.exe /c "bcdedit /set {default} safeboot minimal "
-        Write-Output "`r`nSafe Mode has been set.`n`nPress enter to reboot. Run this script again once the computer has been reset.`n"
-        Pause
-        Restart-Computer
-    }
-    elseif ( (gwmi win32_computersystem -Property BootupState).BootupState -eq "Fail-safe boot") {
-        cmd.exe /c "bcdedit /deletevalue {default} safeboot "
-        Write-Output "Normal Boot has been restored.`n`nPress enter to reboot. Run this script again once the computer has been reset."
-        TAKEOWN /F "C:\ProgramData\Microsoft\Windows Defender\Platform" /A /R /D Y
-        Give-Folder-Access -ItemListPath "C:\ProgramData\Microsoft\Windows Defender\Platform"
-        Give-Folder-Access -ItemListPath "C:\Windows\System32\Tasks\Microsoft\Windows\UpdateOrchestrator"
-        Remove-ACL "C:\ProgramData\Microsoft\Windows Defender\Platform" -Recurse -Verbose
-        Remove-ACL "C:\Windows\System32\Tasks\Microsoft\Windows\UpdateOrchestrator" -Recurse -Verbose
-        Enable-Windows-Defender
+    Give-Folder-Access -ItemListPath "C:\ProgramData\Microsoft\Windows Defender\Platform"
+    Give-Folder-Access -ItemListPath "C:\Windows\System32\Tasks\Microsoft\Windows\UpdateOrchestrator"
+    Remove-ACL "C:\ProgramData\Microsoft\Windows Defender\Platform" -Recurse -Verbose
+    Remove-ACL "C:\Windows\System32\Tasks\Microsoft\Windows\UpdateOrchestrator" -Recurse -Verbose
+    Enable-ProtectAllNetworkConnections -Profile "DomainProfile"
+    Enable-ProtectAllNetworkConnections -Profile "StandardProfile"
+    Enable-ProtectAllNetworkConnections -Profile "PublicProfile"
+    Enable-Windows-Defender
 
-        Write-Output "`r`nNormal Boot has been set.`nPress enter to reboot. Run this script again once the computer has been reset.`n"
-        Pause
-        cmd.exe /c "shutdown -r -t 0"
-    }
+    Write-Output "`r`nWindow Security has been restored`nPress enter to reboot.`n"
+    Pause
+    cmd.exe /c "shutdown -r -t 0"
 }
 
 Reboot-Safe-Mode
