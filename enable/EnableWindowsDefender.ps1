@@ -118,44 +118,11 @@ function Enable-Windows-Defender {
     }
 }
 
-function Enable-ProtectAllNetworkConnections {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$Profile = "StandardProfile"  # Options: "StandardProfile", "DomainProfile", "PublicProfile"
-    )
-
-    # Define the registry path based on the profile
-    $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\WindowsFirewall\$Profile"
-
-    # Ensure the path exists
-    if (-not (Test-Path $regPath)) {
-        New-Item -Path $regPath -Force | Out-Null
-    }
-
-    # Set the "EnableFirewall" value to 1 (Enable)
-    Set-ItemProperty -Path $regPath -Name "EnableFirewall" -Value 1 -Force
-
-    # Set the "DoNotAllowExceptions" value to 1 (Protect all network connections)
-    Set-ItemProperty -Path $regPath -Name "DoNotAllowExceptions" -Value 1 -Force
-
-    Write-Output "The 'Protect all network connections' setting has been enabled for the $Profile."
-}
-
-# Example usage:
-# Enable-ProtectAllNetworkConnections -Profile "DomainProfile"
-# Enable-ProtectAllNetworkConnections -Profile "StandardProfile"
-# Enable-ProtectAllNetworkConnections -Profile "PublicProfile"
-
-
-
 function Reboot-Safe-Mode {
     Give-Folder-Access -ItemListPath "C:\ProgramData\Microsoft\Windows Defender\Platform"
     Give-Folder-Access -ItemListPath "C:\Windows\System32\Tasks\Microsoft\Windows\UpdateOrchestrator"
     Remove-ACL "C:\ProgramData\Microsoft\Windows Defender\Platform" -Recurse -Verbose
     Remove-ACL "C:\Windows\System32\Tasks\Microsoft\Windows\UpdateOrchestrator" -Recurse -Verbose
-    Enable-ProtectAllNetworkConnections -Profile "DomainProfile"
-    Enable-ProtectAllNetworkConnections -Profile "StandardProfile"
-    Enable-ProtectAllNetworkConnections -Profile "PublicProfile"
     Enable-Windows-Defender
 
     Write-Output "`r`nWindow Security has been restored`nPress enter to reboot.`n"
